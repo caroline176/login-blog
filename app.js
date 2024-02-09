@@ -8,7 +8,7 @@ const app = express();
 const db = mysql.createConnection({
     host: 'localhost',
     user: 'phpmyadmin',
-    password: '123456789',
+    password: 'Sesi2023',
     database: 'mydb',
 });
 
@@ -46,7 +46,7 @@ app.set('view engine', 'ejs');
 app.get('/', (req, res) => {
     // Passe a variável 'req' para o template e use-a nas páginas para renderizar partes do HTML conforme determinada condição
     // Por exemplo de o usuário estive logado, veja este exemplo no arquivo views/partials/header.ejs
-    res.render('pages/index', { req: req });
+    res.redirect('/posts');
     // Caso haja necessidade coloque pontos de verificação para verificar pontos da sua logica de negócios
     console.log(`${req.session.username ? `Usuário ${req.session.username} logado no IP ${req.connection.remoteAddress}` : 'Usuário não logado.'}  `);
     //console.log(req.connection)
@@ -59,10 +59,32 @@ app.get('/login', (req, res) => {
     res.render('pages/login', { req: req });
 });
 
-
 app.get('/about', (req, res) => {
-    res.render('pages/about', { req: req })
-});
+   res.render('pages/about', { req: req, });
+ });
+
+ app.get('/posts', (req, res) => {
+    // const dados = [
+    //     {titulo: "Post 1", conteudo: "Conteúdo post 1", autor: "Caroline :)" },
+    //     {titulo: "Post 2", conteudo: "Conteúdo post 2", autor: "Caroline :)" },
+    //     {titulo: "Post 3", conteudo: "Conteúdo post 3", autor: "Caroline :)" },
+    // ];
+    
+    const query = 'SELECT * FROM posts;'
+
+    db.query(query, [], (err, results) => {
+          if  (err) throw err;
+          res.render('pages/pgposts',{ req: req, posts:results });
+
+        // if (results.length > 0) {
+        //     req.session.loggedin = true;
+        //     req.session.username = username;
+        //     res.redirect('/dashboard');
+        // } else {
+        //     // res.send('Credenciais incorretas. <a href="/">Tente novamente</a>');
+        //     res.redirect('/login_failed');
+    });
+ });
 
 // Rota para processar o formulário de login
 app.post('/login', (req, res) => {
@@ -87,14 +109,16 @@ app.post('/login', (req, res) => {
 // Rota para processar o formulário de caastro depostagem
 app.post('/cadastrar_posts', (req, res) => {
     const { titulo, conteudo } = req.body;
-
+    const autor = "admin"
+    const datapostagem = new Date();
     // const query = 'SELECT * FROM users WHERE username = ? AND password = SHA1(?)';
-    const query = 'INSERT INTO posts (titulo, conteudo) VALUES (?,?)';
+    const query = 'INSERT INTO posts (titulo, conteudo, autor, datapostagem) VALUES (?, ?, ?, ?)';
 
-    db.query(query, [titulo, conteudo], (err, results) => {
+    db.query(query, [titulo, conteudo, autor, datapostagem], (err, results) => {
         if (err) throw err;
-
-        if (results.length > 0) {
+        console.log(`Rotina cadastrar post: $(JSON.stringify(results)}`);
+    
+        if (results.affectedRows > 0) {
             console.log('Cadastro de postagem OK')
             res.redirect('/dashboard');
         } else {
@@ -125,7 +149,11 @@ app.post('/cadastrar_posts', (req, res) => {
 // Rota para a página cadastro do post
 app.get('/cadastrar_posts', (req, res) => {
     // Quando for renderizar páginas pelo EJS, passe parametros para ele em forma de JSON
+    if(req.session.loggedin) {
     res.render('pages/cadastrar_posts', { req: req });
+    }else { 
+         res.redirect('/login_failed');
+    }
 });
 
 // Rotas para cadastrar
